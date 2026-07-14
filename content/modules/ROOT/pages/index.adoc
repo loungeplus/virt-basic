@@ -1,0 +1,122 @@
+
+= Welcome to {lab_name}!
+
+[%hardbreaks]
+== 導入
+OpenShift Virtualizationを使用することで、仮想マシンをモダンなKubernetesベースのインフラストラクチャ上に統合することができます。これにより、新しいアプリケーションの開発や配信だけでなく、既存のアプリケーションのモダナイズも可能になり、仮想マシン、コンテナ、およびサーバーレス機能（Serverless Functions）で構成されるアプリケーションを作成して、それらすべてをKubernetesネイティブなツールとパラダイムを使って一元管理できます。
+
+このロードショーイベントは、Red Hat OpenShift Virtualizationのハンズオン（実機演習）を体験していただくために企画されました。
+
+本イベントでは、仮想化管理者が日々のワークフローで頻繁に遭遇する、多くの一般的な管理アクティビティについて探索していきます。
+
+== どのような方に最適なロードショーか？
+
+*仮想マシン管理者（Virtual Machine Administrators）* -- OpenShift Virtualizationにおける仮想ゲストの日々の管理を担当する方々です。これらのユーザーは、仮想ゲストのプロビジョニングや、ゲストおよびその内部で動作するアプリケーションの日々の管理業務を担当することが多くなります。
+
+*仮想インフラストラクチャ管理者（Virtual Infrastructure Administrators）* -- OpenShift Virtualizationソリューションをホストする物理インフラストラクチャを担当する方々です。これらのユーザーは、実行中の仮想マシンの日々の運用に影響を与える、環境への物理ハードウェア、ストレージ、およびネットワーキングの変更作業を担当します。
+
+== ロードショーでカバーされる内容
+
+対象となる主な *7つ* のセクションは以下の通りです。
+
+* *仮想マシンの管理*: 仮想マシンの作成や割り当てリソースの変更など、仮想マシン管理の基本についておさらいします。
+* *既存の仮想マシンの移行*: Migration Toolkit for Virtualization（MTV）を使用して、既存の VMware vSphere 環境から OpenShift Virtualization へ仮想マシンを移行します。
+* *ストレージの管理*: 多くの管理者にとって馴染みのあるストレージの概念は、OpenShift Virtualization によって変化します。このセクションでは、仮想マシンのストレージ管理に関する様々な操作について探ります。
+* *仮想マシンのバックアップとリカバリ*: 仮想マシンを外部サイトにバックアップし、災害発生時にそれらを復元するための追加の概念について導入し、デモを行います。
+* *ネットワークの管理*: デフォルトでは、VM は OpenShift のポッドネットワークに接続されます。このセクションでは、新しい L2 ネットワークマッピングの作成や、直接的なネットワーク接続のためのユーザー定義ネットワーク（UDN）の活用について探ります。
+* *仮想マシンとアプリケーションの連携*: インポートした仮想マシンを使用して Day 2 運用（運用フェーズのタスク）を実行し、VM 内でホストされているアプリケーションをサービス（Service）やルート（Route）を通じて外部に公開します。
+* *テンプレートおよびインスタンスタイプの管理*: 仮想マシンのデプロイを合理化するために、管理者はしばしばテンプレートを作成したりインスタンスタイプ（InstanceType）を定義したりして、デプロイ運用を簡素化します。このセクションでは、それらのプロセスに焦点を当てます。
+
+== OpenShift Virtualizationとは？
+
+* 現在OpenShiftのサブスクリプションをお持ちのすべてのお客様は、追加費用なしでOpenShiftの機能の一部としてOpenShift Virtualizationを利用できます。OpenShift 4.5以降、一般利用可能（Generally Available: GA）となっています。
+* OpenShift Virtualizationは、Cloud Native Computing Foundation（CNCF）のインキュベーティングプロジェクトである「KubeVirt」プロジェクトのもとで開発が進められている「コンテナネイティブ仮想化（container-native virtualization）」技術をベースにしています。
+* 15年以上にわたって開発が続けられ、世界中の多くの組織やクラウドサービスプロバイダーに採用されている、成熟し極めて高いパフォーマンスを誇るオープンソースハイパーバイザーである「Red Hat Enterprise Linux KVM ハイパーバイザー（RHEL KVM）」を活用しています。
+* RHEL KVMハイパーバイザーをベースとすることで、VMをKubernetesおよびKubeVirtによって管理可能にしています。OpenShift VirtualizationのVMは、Kubernetesのスケジューリング、ネットワーク、およびストレージのインフラストラクチャをそのまま利用します。
+* OpenShift Virtualizationは、Red Hatの他のKVM仮想化製品に適用されるルールと同じルールに従い、WindowsゲストのサポートについてMicrosoftのSVVP（Server Virtualization Validation Program）認定を受けています。
+* OpenShift Virtualizationは現在、ベアメタルの物理サーバー（通常はオンプレミス、またはサポートされているクラウドプロバイダーを介したもの）上でのみサポートされています。現時点では、他のトポロジー（OpenStackやvSphereなどの仮想化インフラストラクチャ上にデプロイされたOpenShift）上での実行はサポートされていません。
+* OpenShift Virtualizationにより、OpenShiftはクラスター内のリソースに対して仮想マシンをデプロイ、管理、および接続できるようになります。これには、Kubernetesネイティブな手法を使用してこれらのVMに接続し、管理する機能や、Pipelines、GitOps、Service MeshなどのOpenShiftの機能を活用する機能が含まれます。
+
+== なぜ従来のVMプラットフォームから移行するのか？
+
+**クラウドネイティブな開発、および／またはクラウドネイティブな運用の導入:**
+Red Hat OpenShiftは、チームがスピード、俊敏性、信頼性、保存された豊富な選択肢を持ってアプリケーションを構築できるよう支援します。デプロイ先がどこであっても、本番環境さながらのモードでコーディングが行えます。本当に価値のある業務に集中できる環境を取り戻しましょう。
+
+**完全なアプリケーション開発スタック:**
+Red Hat OpenShift Dev Spaces（旧 Red Hat CodeReady Workspaces）、Runtimes、Integration and Process Automation、Serverless、Pipelinesなどを、ライフサイクル全体にわたるセキュリティとともに提供します。
+
+**インフラストラクチャへの支出をイノベーションへと転換:**
+OpenShiftネイティブのアーキテクチャは、従来のSDDC（Software-Defined Data Center）の重量級なコスト構造から、軽量なコンテナネイティブのフレームワークへと移行させます。
+
+**リスクの軽減:**
+オンプレミスとパブリッククラウドの両方の選択肢をOpenShiftがサポートしているため、特定のパブリッククラウドへのベンダーロックインに対する保険となります。
+
+**インフラストラクチャからの独立:**
+Red Hat OpenShiftはベアメタル、オンプレミスの仮想化、またはパブリッククラウド上で一貫して動作するため、デプロイし、アップデートにおいて究極の選択肢と柔軟性を提供します。
+
+**純粋なオープンソースのイノベーション:**
+Kubernetes、サーバーレス、サービスメッシュ、Kubernetes Operatorなどのイノベーションは、Red Hatがリードするオープンソースコミュニティの圧倒的なスピードによって生み出されています。
+
+== どのOpenShiftサブスクリプションが最適か？
+
+OpenShiftは、エンドユーザーがいつでもすべての機能にアクセスできる包括的なプラットフォームですが、その使用権は購入したサブスクリプションによって管理されます。
+
+OpenShiftのサブスクリプションは以下の4つのカテゴリに分かれており、そのすべてでOpenShift Virtualizationへのアクセスが提供されます。
+
+**Red Hat OpenShift Platform Plus**
+アプリケーションを大規模に構築、モダナイズ、およびデプロイするための統合プラットフォームです。マルチクラスターのセキュリティ、コンプライアンス、アプリケーションおよびデータ管理がさまざまなインフラストラクチャ間で連携し、ソフトウェアサプライチェーン全体に一貫性を提供します。Red Hat OpenShift Platform Plusは、ハイブリッドクラウド上でアプリケーションを市場に投入するための充実したサービスセットにより、よりスマートかつ迅速な業務遂行を支援します。
+
+**Red Hat OpenShift Container Platform**
+今日のAI対応アプリケーションを含む、アプリケーションを大規模に開発、モダナイズ、およびデプロイするための、信頼性が高く包括的で一貫したプラットフォームです。選択したインフラストラクチャ上でアプリケーションを市場に投入するための充実したサービスセットにより、迅速なイノベーションを可能にします。
+
+**Red Hat OpenShift Kubernetes Engine**
+Red Hat OpenShiftの基本的な機能を提供します。Red Hat OpenShift Container Platformが提供する機能のサブセットを提供し、エンタープライズ対応のKubernetes環境へのフルアクセスや、データセンターで使用する可能性のある多くのソフトウェア要素との広範な互換性テストマトリクスを利用できます。
+
+**Red Hat OpenShift Virtualization Engine**
+仮想マシン（VM）のデプロイ、管理、およびスケールを行うための、実績のあるRed Hat OpenShiftの仮想化機能を提供します。VMワークロードに特化した合理的なソリューションにより、必要な機能の分だけを支払うことができます。
+
+以下のチャートは、各サブスクリプションで付与される機能を説明したものであり、お使いの環境に最適なOpenShiftのバージョンを決定するのに役立ちます。
+
+image::2025_spring/index/01_openshift_comparison_chart.png[link=self, window=blank, width=100%]
+
+すべてのOpenShiftエディションにおける詳細な機能比較は、 https://www.redhat.com/en/resources/self-managed-openshift-subscription-guide#section-13[Self-managed OpenShift Subscription Guide^] の付録1で確認できます。
+
+== 次のステップ
+
+OpenShift Virtualizationについてさらに詳しく知りたい場合は、 https://www.redhat.com/en/technologies/cloud-computing/openshift/virtualization[landing page^] をご覧いただくか、 https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/virtualization/about[documentation^] をご確認ください。また、 https://www.redhat.com/en/interactive-experiences#virtualization[インタラクティブ体験（英語）^] をお楽しみいただくか、 https://www.youtube.com/playlist?list=PLaR6Rq6Z4IqeQeTosfoFzTyE_QmWZW6n_[YouTube^]  のデモビデオをご覧ください。
+
+== ラボ環境の要件
+
+* 参加者は、Webブラウザとインターネットアクセスを備えた自身のコンピューターを用意する必要があります。
+* 現在、Firefoxでは一部のコピー＆ペースト機能が正常に動作しない場合があるため、Chromiumベースのブラウザを推奨します。
+* リモートアクセスのコンソールはデフォルトで米国（US）キーボードレイアウトを使用しているため、他の国のレイアウトでの特殊文字の配置を把握しておくか、サポートされているブラウザのコピー＆ペースト機能を利用することをお勧めします。
+
+=== OpenShiftコンソールのログイン情報
+
+お使いのOpenShiftクラスターのコンソールは、 {openshift_console_url}[こちら^] からアクセスできます。
+
+ログイン情報は以下の通りです。
+
+* *User（ユーザー名）:* {user}
+* *Password（パスワード）:* {password}
+
+=== vCenterへのアクセス
+
+ラボの移行章では、 https://{vcenter_console}[VMware vSphere^] 環境にログインして確認作業を行うよう指示があります。
+
+アクセスには以下の資格情報を使用してください。
+
+* *vcenter_user（ユーザー名）:* {vcenter_full_user}
+* *vcenter_password（パスワード）:* {vcenter_password}
+
+=== バージョン情報
+
+本エディションのOpenShift Virtualization Roadshowは、以下のソフトウェアバージョンを使用して開発されています。
+
+* Red Hat OpenShift 4.21.10
+* Red Hat OpenShift Virtualization 4.21.3
+* Red Hat OpenShift Data Foundation 4.21.2
+* Red Hat OpenShift API for Data Protection (OADP) 1.5.5
+* Red Hat Migration Toolkit for Virtual Machines 2.11.4
+
+（2026年4月27日時点の情報）

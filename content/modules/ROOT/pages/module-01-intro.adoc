@@ -1,0 +1,266 @@
+
+= 仮想マシンの管理
+
+== 導入
+
+このラボの最初のセクションでは、OpenShift VirtualizationにおけるVMの作成と管理の基本について紹介します。OpenShift 4.19以降、PatternFly 6をベースにした完全に新しいUIが導入され、新しい「仮想化（Virtualization）」パースペクティブと仮想マシンのツリー表示により、仮想化ベースの資産の可視化と管理がより簡単になりました。UIの変更点を確認した後は、定義済みのテンプレートから仮想マシンを作成するプロセス全体を、Webコンソールがどのようにガイドしてくれるかを見ていきます。その後、そのVMのプロパティを確認し、いくつかの基本的な管理操作を行い、仮想マシン管理者に通常期待されるライブマイグレーションなどのアクションを実行します。
+
+.*目標*
+
+* 新しい仮想マシンの作成
+* 仮想マシンの構成とオプションの確認
+* OpenShiftコンソールを使用したVMの電源状態の管理方法の理解
+* 2つのホスト間でのVMのライブマイグレーションの実行
+
+確認として、OpenShiftコンソールのログイン情報を以下に示します。
+
+OpenShiftクラスターのコンソールは {openshift_console_url}[こちら^] からアクセスできます。
+
+ログイン情報は以下の通りです。
+
+* *User（ユーザー名）:* {user}
+* *Password（パスワード）:* {password}
+
+== 新しいプロジェクトの作成
+
+. 初めてログインすると、導入プロンプトが表示された *Core Platform(コアプラットフォーム)* パースペクティブ（画面）が表示されます。*Skip tour（ツアーをスキップ）* ボタンをクリックしてウィンドウを閉じます。
++
+image::2026_spring/module-01-intro/00_Welcome_Message.png[link=self, window=blank, width=100%]
+
+. 現在ユーザーがアクセスできるすべてのプロジェクトを表示するページが表示されます。このページで、このワークショップの残りの部分の作業領域となる新しいプロジェクトを作成します。右上隅にある *Create Project（プロジェクトの作成）* ボタンをクリックします。
++
+image::2026_spring/module-01-intro/01_Create_Project.png[link=self, window=blank, width=100%]
+
+. 新しいプロジェクトに名前を付けるためのボックスがポップアップ表示されます。プロジェクト名に *vmexamples-{user}* と入力し、*Create（作成）* ボタンをクリックします。
++
+image::2026_spring/module-01-intro/02_Create_Project_Name.png[link=self, window=blank, width=100%]
++
+[IMPORTANT]
+====
+ラボガイドはユーザー名が正しく動的に更新されるように設計されていますが、スクリーンショットはすべて *user1* を表示する静的な画像です。プロジェクト名には、ラボガイドのテキストに反映されている、割り当てられたご自身のユーザー名を使用していることを確認してください。
+====
+
+== 仮想化パースペクティブへの切り替え
+
+. 新しいプロジェクト内のOpenShiftコンソールのビューが表示されます。ここからは仮想化の表示（パースペクティブ）に移動します。*Core platform(コアプラットフォーム)* のドロップダウンメニューをクリックし、表示された選択肢から *Virtualization（仮想化）* を選択します。
++
+image::2026_spring/module-01-intro/03_Switch_Virt_View.png[link=self, window=blank, width=100%]
+
+. OpenShift Virtualizationへようこそという導入プロンプトが表示されます。*Do not show this again（次回から表示しない）* のチェックボックスをクリックすると、ウィンドウが消えます。
++
+image::2026_spring/module-01-intro/04_Welcome_Virt.png[link=self, window=blank, width=100%]
+
+== OpenShift Virtualizationの探索
+
+*Virtualization（仮想化）* パースペクティブに到達すると、現在使用中のすべての仮想化リソースのハイレベルなビューを提供する *Overview（概要）* ページが表示されます。少し時間を取って探索してみましょう。
+
+image::2026_spring/module-01-intro/05_Virt_Overview.png[link=self, window=blank, width=100%]
+
+[NOTE]
+====
+*Virtualization（仮想化）* パースペクティブは、Red Hat OpenShift Virtualizationがインストールされ、適切に構成されている場合にのみ利用できます。このラボ環境では、インストールと構成はすでに完了しています。
+====
+
+. 左側のメニューにある *VirtualMachines（仮想マシン）* 項目をクリックすると、クラスター内のすべてのVM資産の仮想化ツリービューが表示されます。
++
+image::2026_spring/module-01-intro/06_Tree_View.png[link=self, window=blank, width=100%]
+
+. このページを少し探索してみましょう。このビューは3つの列に分かれており、左側が管理メニュー、中央の列がVMベースのプロジェクトの整理領域、そして右側が仮想マシンの概要ビューになっています。
+
+. 左側のメニューは、OpenShiftに統合された仮想化機能のメインコントロールです。VMを構築するための「Catalog（カタログ）」、「Templates（テンプレート）」、「InstanceTypes（インスタンスタイプ）」などの仮想化関連アイテムや、仮想マシン用のストレージやネットワーキングオプションを構成するメニューを確認できます。
++
+image::2026_spring/module-01-intro/07_Left_Menu.png[link=self, window=blank, width=100%]
+
+. 前述の通り、中央の列はプロジェクトのビュー（一覧）です。OpenShiftの他のオブジェクトと同様に、プロジェクト（Kubernetesのネームスペースの抽象化）は、ユーザーがリソースを使用および管理するための権限やその他の側面の境界線となります。デフォルトでは、ここには既存のVMを持つプロジェクトのみを表示するスライダー（トグル）があります。現在、リストに表示されている唯一のプロジェクトは *vmimported-{user}* です。これは仮想マシンが含まれており、かつアクセス権を持っている唯一のプロジェクトだからです。
++
+image::2026_spring/module-01-intro/08_Project_Tree.png[link=self, window=blank, width=100%]
+
+. 仮想マシン概要の列では、アルファベット順にソートされるため、デフォルトでプロジェクト *mtv-{user}* に配置されます。このプロジェクトには現在仮想マシンは存在せず、将来的にも作成されません。中央の列で特定のプロジェクトや仮想マシンをハイライトすると、この表示が変化します。今すぐ試してみましょう。
++
+image::2026_spring/module-01-intro/09_VM_List.png[link=self, window=blank, width=100%]
+
+. 中央のプロジェクトビュー列で、プロジェクト *vmimported-{user}* をクリックして、特定のご自身のユーザーアカウントでデプロイされ利用可能になっている仮想マシンを確認します。
++
+image::2026_spring/module-01-intro/10_VM_Imported_Project.png[link=self, window=blank, width=100%]
+
+. *vmimported-{user}* プロジェクトが展開され、そこに存在する3つの仮想マシンがリスト表示され、仮想マシンの概要列が更新されて *vmimported-{user}* プロジェクト内の仮想マシンが表示されます。3つのVMがリストされているのを確認できますが、現在は電源が入っていません。これらは、必要に応じて使用するラボの後半部分のためのものです。
++
+image::2026_spring/module-01-intro/11_VMs_Stopped.png[link=self, window=blank, width=100%]
+
+== Linux仮想マシンの作成
+
+. 仮想マシンを作成するには、作成先となるプロジェクトを選択する必要があります。
+
+. 中央のプロジェクトビューで、*Show only projects with VirtualMachines（VirtualMachine を含むプロジェクトのみを表示する）* オプションのトグルボタンをクリックしてオフにします。これにより、先ほど作成した *vmexamples-{user}* プロジェクトを含め、ユーザーがアクセスできるすべてのプロジェクトを確認できるようになります。
+
+. *vmexamples-{user}* プロジェクトをクリックすると、仮想マシンの概要列が更新され、*Create VirtualMachine（VirtualMachineの作成）* ボタンが表示されます。
+
+. *Create VirtualMachinee（VirtualMachineの作成）* ボタンをクリックし、ドロップダウンメニューから *From template（テンプレートから）* を選択します。
++
+image::2026_spring/module-01-intro/12_Create_VM_Button.png[link=self, window=blank, width=100%]
++
+[NOTE]
+====
+VMは、InstanceType（インスタンスタイプ）ウィザードから作成したり、カスタムのYAML定義を入力して作成したりすることもできますが、この現在のラボシナリオでは、既存のテンプレートに基づいてVMを作成する方法を採用します。
+====
+
+. *Catalog（カタログ）* 画面に移動し、利用可能な定義済みのVMテンプレートを示す多数のタイルが表示されます。
++
+利用可能なテンプレートのリストを確認すると、いくつかのテンプレートに「*Source available（ソースが利用可能）*」という青いバッジが付いていることに気づくでしょう。これらは、自動的にダウンロードされて保存されたテンプレートソースディスクを使用しているテンプレートです。
++
+独自のオプションをカスタマイズしてデプロイできる環境であれば、デフォルトで利用可能なこれらのブートソースの可用性を変更したり、組織のニーズに応じたカスタムディスクの作成を優先して、これらのソースディスクを削除したりすることを選択できます。
++
+image::2026_spring/module-01-intro/13_Create_VM_Templates.png[link=self, window=blank, width=100%]
+
+. *Fedora VM* のタイルを選択すると、ダイアログが開きます。
++
+image::2026_spring/module-01-intro/14_Create_VM_Quick.png[link=self, window=blank, width=100%]
+
+. 名前を *fedora01* に変更し、*Quick create VirtualMachine（VirtualMachineのクイック作成）* を押します。
++
+image::2026_spring/module-01-intro/15_Create_VM_Quick_Name.png[link=self, window=blank, width=100%]
+
+. ツリービューに戻り、仮想マシンの概要列に新しいVMに関する情報が表示されます。また、中央の列にはVMが含まれるようになったため、*vmexamples-{user}* プロジェクトがリストに表示され、プロジェクト内でハイライトされていることが確認できます。
++
+注意深く見守っていると、準備が整うにつれて、仮想マシンの概要列でVMのステータスが *Provisioning（プロビジョニング中）* から *Starting（起動中）* 、そして最終的に *Running（実行中）* に切り替わるのを確認できます。
++
+この間に、ストレージプロバイダーは、新しく作成された仮想マシンが使用できるようにテンプレートディスクのクローンを作成しています。これにかかる時間は、ブートディスクの作成に使用されるストレージプロバイダーや、システムの現在の負荷によって異なる場合があります。
++
+image::2026_spring/module-01-intro/16_Fedora_Running.png[link=self, window=blank, width=100%]
+
+. 仮想マシンが実行状態になったら、右側の列にある *Overview（概要）* ページをさらに探索してみましょう。
++
+
+* **Details（詳細）**: このタイルには、名前、ステータス、作成時間、OS、仮想リソース、および作成元のテンプレートを含む、VMに関する情報が表示されます。また、ミニチュアのVNCターミナルや、全画面のWebコンソールを起動する機能も含まれています。
+* **General（一般）**: このタイルには、Namespace（プロジェクト）、インスタンス名、およびゲストが実行されているKubernetesポッドなど、OpenShiftに特有の情報が表示されます。
+* **Snapshots（スナップショット）**: このタイルには、既存のスナップショットに関する情報が表示され、スナップショットを迅速に作成するためのボタンもあります。
+* **Network（ネットワーク）**: このタイルには、ソフトウェア定義ネットワーク（SDN）上における仮想マシンのIPアドレスと、その内部ホスト名が表示されます。高度なネットワークが定義されていない場合、VMは自動的にポッドネットワークにアタッチされます。このラボの後半では、高度なネットワーキングオプションと、VMの接続性をカスタマイズする方法について探索します。
+* **Utilization（使用状況）**: このタイルには、CPU、メモリ、ストレージ、およびネットワークのスループットを含め、この仮想マシンによって現在使用されているリソースの概要が表示されます。
+* **Storage（ストレージ）**: このタイルには、現在のストレージボリュームに関する情報が表示されます。このVMでは特に、テンプレートからVMを起動するために使用されたcloudinitディスクと、マシンをインストールした仮想ハードディスクが表示されます。
+
+image::2026_spring/module-01-intro/17_Fedora_Details.png[link=self, window=blank, width=100%]
+
+. VMの詳細を確認したら、*Events（イベント）* タブをクリックして、今行われたプロビジョニングプロセスの詳細を確認します。VMの作成に問題がある場合は、このタブにも表示されます。作成時には以下のイベントが発生しました。
++
+image::2026_spring/module-01-intro/18_Fedora_Events.png[link=self, window=blank, width=100%]
++
+
+* *DataVolume* が作成されました。*DataVolume* は、VMディスクの作成を管理するために使用され、仮想マシンの作成ワークフロー中に、OpenShiftのネイティブストレージへのクローンやインポートのプロセスを抽象化します。
+* 新しい *仮想マシンインスタンス（VM instance）* である *fedora01* が起動しました。
+
+== 仮想マシンの管理
+
+仮想マシンの管理と利用は、単に構成を作成してカスタマイズするだけではありません。プラットフォーム管理者として、仮想マシンの状態を制御し、ワーカーノード間でライブマイグレーションを実行するなどの高度な操作を行える必要があります。これにより、リソースのバランスを調整し、メンテナンスのタスクを実行し、ノードの再構成を行うことができます。
+
+. *Configuration（設定）* タブをクリックします。ここが、仮想マシンのリソースに関する詳細情報を取得し、リソースを変更するためのエントリポイント（入り口）です。
++
+image::2026_spring/module-01-intro/19_VM_Configuration.png[link=self, window=blank, width=100%]
++
+ここには7つのサブタブが含まれています。
++
+image::2026_spring/module-01-intro/20_Configuration_Tab.png[link=self, window=blank, width=100%]
++
+
+* **Details（詳細）**: このタブでは、VMのすべての物理的特徴が単一のパネルに表示されます。ここから、さまざまな記述子や、CPUやメモリの変更、ホスト名の変更、パススルーデバイスのアタッチ、ブート順序の変更を含む、基本的なハードウェア構成の編集を行えます。
+* **Storage（ストレージ）**: このタブにはシステムにアタッチされているディスクがリスト表示され、システムに新しいディスクを追加することができます。ゲストにエージェント（QEMUゲストエージェント）が構成されている場合は、ファイルシステムとその利用状況がリスト表示されます。ここでは、追加のディスクとして *ConfigMap*、*Secret*、および *Service Account* をアタッチすることが可能です。これは、仮想マシン内で実行されているアプリケーションに構成データを渡す場合に便利です。
+* **Network（ネットワーク）**: このタブには、VMに現在構成されているネットワークインターフェースが表示され、新しいインターフェースを追加することができます。
+* **Scheduling（スケジューリング）**: このタブには、VMを実行すべき場所や、ノードからの退去（エビクション）時に従うべき戦略を示す高度な構成オプションが含まれています。このタブは、（アンチ）アフィニティルールの構成、ノードセレクターやノードの許容（Toleration）の構成、およびVMをどのクラスターノードにスケジュールできるかに影響を与えるその他の動作を構成するために使用されます。
+* **SSH**: このタブでは、構成されたロードバランサー上にSSHサービスを作成するか、機能が有効な場合は公開SSHキーをインジェクション（注入）することで、マシンへのリモートアクセスを構成できます。
+* **Initial run（初回実行）**: このタブでは、Linux用の *cloud-init* またはMicrosoft Windows用の *sys-prep* を構成できます。これには、SSHキーのインジェクション、アプリケーションのインストール、ネットワーク構成など、最初の起動時に実行されるコマンドの設定が含まれます。
+* **Metadata（メタデータ）**: このタブには、仮想マシンに現在適用されているラベル（Label）とアノテーション（Annotation）が表示されます。これらの値を変更することで、特定の目的のためにマシンにタグを付けたり、マシンを意図的に識別して自動化されたワークフローを有効にしたりするのに役立ちます。
+
+. これらをそれぞれクリックして自由に探索できますが、まずは導入として、特にストレージとネットワーキングに焦点を当ててみましょう。
+
+. *Storage（ストレージ）* タブをクリックして、VMに関連付けられているディスクの一覧を表示します。
++
+image::2026_spring/module-01-intro/21_Storage_Tab.png[link=self, window=blank, width=100%]
++
+この環境では、ディスクに使用されるストレージのソースとタイプを定義するデフォルトのStorageClass（ストレージクラス）は、*ocs-external-storagecluster-ceph-rbd* と呼ばれます。このストレージは、仮想マシンを実行するためにOpenShift Data Foundation（ODF）によって提供されるデフォルトのタイプです。各ストレージプロバイダーには、VMディスクをバッキングするストレージの特性を定義するさまざまなストレージクラスがあります。
+
+. *Network（ネットワーク）* サブタブをクリックして、VMにアタッチされているネットワークインターフェースを確認します。
++
+image::2026_spring/module-01-intro/22_Network_Tab.png[link=self, window=blank, width=100%]
++
+VMがクイック作成されると、デフォルトで *masquerade（マスカレード）* タイプの *Pod Networking（Podネットワーク）* 上のインターフェースが作成されます。これにより、VMがSDNに接続され、VMからOpenShiftクラスター外部の世界へのegress（送信）が提供されます。クラスター内の他のVMやポッドは、このインターフェースを使用して仮想マシンにアクセスできます。
++
+さらに、SDNに接続されたVMは、Route（ルート）やロードバランサー（LoadBalancer）タイプのService（サービス）を使用して外部からアクセスすることや、Network Attachment Definition（ネットワーク接続定義）やユーザー定義ネットワーク（UDN）によってVLANや外部ネットワークを定義して直接アタッチすることもできます。これらのオプションについては、後ほど詳しく探索します。
+
+== 仮想マシンの状態の制御
+
+仮想化環境を管理する権限を付与されたユーザーとして、Webコンソールから仮想マシンの停止（Stop）、開始（Start）、再起動（Restart）、一時停止（Pause）、および一時停止解除（Unpause）を行うことができます。
+
+. *Overview（概要）* タブをクリックして、サマリー画面に戻ります。
+
+. 右上隅に、実行状態を制御するショートカットボタン（Stop、Restart、Pause、Start）と、*Actions（アクション）* というタイトルのドロップダウンメニューがあることに気づくでしょう。
++
+image::2026_spring/module-01-intro/23_VM_State_Actions.png[link=self, window=blank, width=100%]
++
+
+* **Stop（停止）**: 仮想マシンの正常なシャットダウン（クリーンシャットダウン）を開始します。
+* **Restart（再起動）**: 仮想マシンを再起動するようオペレーティングシステムにシグナルを送信します。これが適切に機能するには、ゲストOS側のインテグレーション（ゲストエージェントなど）が必要です。
+* **Pause（一時停止）**: CPUリソースやI/Oへのアクセスがそれ以上行われないようにプロセスが凍結されますが、ハイパーバイザーレベルでVMによって使用されているメモリは割り当てられたままになります。
+* **Start（開始）**: 停止している仮想マシンを起動します。マシンが実行中の場合はグレーアウトします。
+
+. ショートカットボタンは便利ですが、*Actions（アクション）* メニューの *Control（コントロール）* メニューをクリックすることで、これらのオプションやそれ以上のオプションにアクセスすることもできます。ドロップダウンリストには、VMを操作するための他の多くのオプションが用意されていることが確認できます。
++
+image::2026_spring/module-01-intro/24_VM_Actions_Menu.png[link=self, window=blank, width=100%]
+
+. *Stop（停止）* ボタンを押し、仮想マシンが *Stopped（停止済み）* 状態になるまで待ちます。
++
+image::2026_spring/module-01-intro/25_VM_Stopped.png[link=self, window=blank, width=100%]
+
+. *Actions（アクション）* から *Control（コントロール）* をクリックすると、*Start（開始）* オプションが表示され、*Restart（再起動）* と *Pause（一時停止）* オプションがグレーアウトしていることが確認できます。
++
+image::2026_spring/module-01-intro/26_VM_Actions_List_Stopped.png[link=self, window=blank, width=100%]
+
+. *Start（開始）* をクリックし、*Running（実行中）* ステータスになるまで待ちます。
+
+. *Actions（アクション）* メニュー、またはショートカットボタンを使用して、*Pause（一時停止）* オプションを押します。仮想マシンの状態が *Paused（一時停止中）* に変わります。
++
+image::2026_spring/module-01-intro/27_VM_Actions_Paused.png[link=self, window=blank, width=100%]
+
+. *Actions（アクション） -> Control（コントロール）* メニューの *Unpause（一時停止の解除）* オプションを使用するか、ショートカットボタンを使用して、仮想マシンの動作を再開させます。
+
+== 仮想マシンのライブマイグレーション
+
+このセクションでは、VMをシャットダウンすることなく、あるOpenShiftノードから別のノードへと移行（ライブマイグレーション）させます。ライブマイグレーションを実行するには、VMのディスクを移行元と移行先の双方のノードに同時にマウントできるように、*ReadWriteMany*（RWX：複数ノードによる読み書き対応）ストレージが必要になります。多くの場合、OpenShift Virtualizationは、馴染みのある他の仮想化ソリューションとは異なり、各クラスターメンバーにマウントされ、多数の異なるVM向けの多数のVMディスクを保持するようなモノリシックな（単一の巨大な）データストアをデフォルトでは使用しません。その代わりに、必要な各VMディスクに対して永続ボリューム要求（PVC：Persistent Volume Claim）が作成され、それらのディスクがそれぞれ独自のボリュームに格納され、必要とされる時に必要とされる場所にのみマウントされるというKubernetes CSI（Container Storage Interface）のパラダイムを活用します。
+
+. 仮想マシンが実行されている物理ノードを確認するには、*Overview（概要）* ページの *General（一般）* タイルの下にある *Pod（ポッド）* 名（*virt-launcher-fedora01-uuid*）をクリックします。
++
+
+image::2026_spring/module-01-intro/28_Pod_Name.png[link=self, window=blank, width=100%]
+
+. これにより、ポッドの詳細ページが表示されます。*Node（ノード）* と呼ばれるセクションヘッダーを探し、ポッドが実行されているワーカーノードの名前を確認します。このスクリーンショットでは、*worker-cluster-5dktk-1* 上で実行されています。
++
+image::2026_spring/module-01-intro/29_Pod_Details_Node.png[link=self, window=blank, width=100%]
+
+. ブラウザの戻るボタンをクリックして、*Overview（概要）* ページに戻ります。
+
+. *Actions（アクション）* メニューを使用して、*Migration（マイグレーション）* -> *Compute（コンピュート）* オプションを選択します。
++
+image::2026_spring/module-01-intro/30_VM_Dialog_Migrate.png[link=self, window=blank, width=100%]
+
+. OpenShiftに移行先を自動的に選択させるか、自分で特定のノードを選択するかを選択できるダイアログが表示されます。*Automatically selected Node（自動的に選択されたノード）* を選択したままにして、*Migrate VirtualMachine（VirtualMachineの移行）* ボタンをクリックします。
++
+image::2026_spring/module-01-intro/30a_Migrate_Target_Node.png[link=self, window=blank, width=100%]
++
+[NOTE]
+====
+このラボ環境のマルチユーザー（多人数同環境）という性質上、クラスター内のノード一覧を表示できないようにRBAC権限が構成されています。本番のユースケースでは、どちらのオプションも選択できます。
+====
+
+. 数秒後、VMのステータスが *Migrating（マイグレーション中）* に変わり、その進行状況を追跡できます。
++
+image::2026_spring/module-01-intro/31_VM_Migrating.png[link=self, window=blank, width=100%]
+
+. マイグレーションが完了すると、VMは *Running（実行中）* ステータスに戻りますが、新しいノード上で実行されるようになります。検証のために、*virt-launcher-fedora01-uuid* ポッド名をクリックしてみましょう。
++
+image::2026_spring/module-01-intro/32_Migrated_Status.png[link=self, window=blank, width=100%]
+
+. 仮想マシンが新しいノード（画像では *worker-cluster-5dktk-3*）上で実行されていること、そしてポッド自体が新しい固有のIDを持つ新しいポッドに常駐していることが確認できます。ライブマイグレーションプロセスは、VMインスタンスを新しいワーカーノード上の新しいポッドへと、無停止（非破壊的）で転送するためです。
++
+image::2026_spring/module-01-intro/33_Pod_Details_Node_Migrated.png[link=self, window=blank, width=100%]
+
+== まとめ
+
+このラボでは、OpenShift Virtualizationにおける仮想化管理環境の概要を確認し、テンプレートから仮想マシンをプロビジョニングし、電源状態の管理や物理ホスト間でのライブマイグレーションを含む、いくつかの基本的な仮想マシン管理タスクを実行しました。これらのタスクはそれぞれ、プラットフォーム管理者として実行する一般的かつ必要なタスクであり、OpenShift VirtualizationでVMを操作する際に利用できるいくつかの基本機能に慣れるための優れた方法です。

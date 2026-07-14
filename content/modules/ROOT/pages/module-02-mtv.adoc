@@ -1,0 +1,274 @@
+
+= 既存の仮想マシンの移行
+
+== 導入
+
+このラボのセクションでは、 https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/2.11/[Migration Toolkit for Virtualization^]（MTV）を使用して、VMware vSphereからOpenShiftへ仮想マシンをインポートします。この移行ツールキットは、以下の2つのインポート「モード」をサポートしています。
+
+* **コールドマイグレーション（Cold migration）**: 移行を開始する前に、移行元の仮想マシンの電源をオフにします。これがデフォルトの移行タイプです。
+* **ウォームマイグレーション（Warm migration）**: 移行元の仮想マシンを実行したままデータをコピーします。データの大部分が移行された後、VMをシャットダウンして最終的なデータを移行先にコピーします。その後、新しいVMを起動できるため、VM内でホストされているアプリケーションのダウンタイムを大幅に短縮できます。
+
+[NOTE]
+====
+移行ツールキットは、OperatorHubで利用可能なオペレーター（Operator）を使用して、クラスターにすでにデプロイされています。
+====
+
+オペレーターのインストールと構成方法に関するドキュメントは、 https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/2.11/html/installing_and_using_the_migration_toolkit_for_virtualization/installing-mtv_mtv#installing-the-operator_mtv[こちら^] で確認できます。
+
+組織のニーズに合わせてMigration Toolkit for Virtualizationを構成する方法について詳しく知りたい場合は、以下のリンクにある各プラットフォーム向けのドキュメントを参照してください。
+
+* https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/2.11/html/planning_your_migration_to_red_hat_openshift_virtualization/assembly_provider-specific-requirements-for-migration_mtv#ova-prerequisites_mtv[Open Virtual Appliance (OVA)^]
+* https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/2.11/html/planning_your_migration_to_red_hat_openshift_virtualization/assembly_provider-specific-requirements-for-migration_mtv#cnv-prerequisites_mtv[OpenShift Virtualization^]
+* https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/2.11/html/planning_your_migration_to_red_hat_openshift_virtualization/assembly_provider-specific-requirements-for-migration_mtv#openstack-prerequisites_mtv[OpenStack^]
+* https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/2.11/html/planning_your_migration_to_red_hat_openshift_virtualization/assembly_provider-specific-requirements-for-migration_mtv#rhv-prerequisites_mtv[Red Hat Virtualization^]
+* https://docs.redhat.com/en/documentation/migration_toolkit_for_virtualization/2.11/html/planning_your_migration_to_red_hat_openshift_virtualization/assembly_provider-specific-requirements-for-migration_mtv#vmware-prerequisites_mtv[VMware vSphere^] 
+
+.*目標*
+
+* VMware vSphere環境の探索
+* Migration Toolkit for Virtualization（MTV）に必要な構成の確認
+* 移行プラン（Migration Plan）の作成
+* OpenShift VirtualizationへのVMの移行
+* 組み込みのインタラクティブデモによる高度なオプションの探索
+
+== 移行の前提条件
+
+以下の前提条件がすべての移行に適用されます。
+
+* ISOイメージおよびCD-ROMディスクがアンマウントされていること。
+* 各NICにIPv4アドレスまたはIPv6アドレスのいずれかが含まれていること（両方使用していても可）。
+* VMのオペレーティングシステムが、OpenShift VirtualizationのゲストOSとして https://access.redhat.com/articles/4234591[認証およびサポート^] されていること。
+* VM名には、英小文字（a-z）、数字（0-9）、またはハイフン（-）のみを使用し、最大253文字までであること。最初と最後の文字は英数字である必要があります。名前に英大文字、スペース、ピリオド（.）、または特殊文字を含めることはできません。
+* VM名が、OpenShift Virtualization環境内の既存のVM名と重複していないこと。
+
+[NOTE]
+====
+**Migration Toolkit for Virtualization** は、ルールに準拠していないVMに対して新しい名前を自動的に割り当てます。これにより、移行処理を問題なく続行させることができます。
+====
+
+== VMwareからの仮想マシンの移行
+
+OpenShiftに移行するために、3層（3-Tier）アプリケーションがVMware上にデプロイされています。
+
+このアプリケーションは、以下の4つの仮想マシンで構成されています。
+
+* Webサーバーにトラフィックをリダイレクトする1台のHAproxyシステム。
+* MariaDBデータベースを実行する1台のLinuxシステム。
+* データベースに接続するPHPアプリケーションをホストする、IISを備えた2台のMicrosoft Windowsサーバー。
+
+このラボでは、4つの仮想マシンのうち3つをコールドマイグレーションを使用して移行するタスクを実行します。
+
+[NOTE]
+====
+HAproxy（ロードバランサー）のVMを移行する必要はありません。OpenShiftは、*Service（サービス）* を使用してSDNに接続されたVMのネットワークトラフィックと負荷分散をネイティブに処理するためです。
+====
+
+=== VMware環境の確認
+
+データストアやポートグループなどのリソースを、vSphereからOpenShiftの対応する要素（ストレージクラスやネットワーク接続定義）にマッピングするプロセスを理解するために、まずは移行元の環境を確認することから始めましょう。
+
+. VMware vCenterに移動します： https://{vcenter_console}[vCenter Console^]
+. *Launch vSphere Client* をクリックします。
+. 以下の資格情報でログインします。
+
+* **User（ユーザー名）**: {vcenter_full_user}
+* **Password（パスワード）**: {vcenter_password}
+
+. デプロイの初期状態では、ナビゲーションツリーの最上部にある *Inventory（インベントリ）* ビューに移動し、このオブジェクトを表示する権限がないというメッセージが表示されます。これは現在のユーザーアカウントにおける想定通りの挙動です。
++
+image::2025_spring/module-02-mtv/00_VMware_First_Login.png[link=self, window=blank, width=100%]
+
+. *Workloads（ワークロード）* アイコンをクリックし、*Roadshow* という名前のフォルダと、その下にある4つのVMが表示されるまでナビゲーションツリーを展開します。
++
+image::2026_spring/module-02-mtv/01_Workload_VM_List.png[link=self, window=blank, width=100%]
++
+[NOTE]
+====
+お使いのラボ環境における正確なフォルダリストは、ここの画像と異なる場合がありますが、Roadshowフォルダと対象のVMが見つかれば、ラボを続行して構いません。
+====
+
+. 画面上部にある *VMs（仮想マシン）* タブをクリックして、フォルダ内の各仮想マシンの詳細を確認します。
++
+image::2026_spring/module-02-mtv/02_VM_Details.png[link=self, window=blank, width=100%]
+
+. *Networks（ネットワーク）* ビューに切り替え、ツリーを展開して仮想マシンが使用しているポートグループを確認します。名前が *segment-migrating-to-ocpvirt* であることに注目してください。
++
+image::2026_spring/module-02-mtv/03_vSphere_Network.png[link=self, window=blank, width=100%]
+
+. 最後に、*Datastores（データストア）* ビューに移動して、使用中のデータストアを確認します。ツリーを展開して *RS0x* データセンターにアタッチされているデータストアを確認し、必要に応じて *VMs（仮想マシン）* サブタブに移動して、各仮想マシンが使用している容量を確認します。
++
+image::2026_spring/module-02-mtv/04_vSphere_Datastore.png[link=self, window=blank, width=100%]
+
+=== 移行ツールキットへのVMwareプロバイダーの確認
+
+VMware vSphereとそこに存在する仮想マシンの確認が完了しましたので、ウィンドウを閉じてOpenShift Webコンソールに戻ってください。
+
+. 左側のメニューで *Migration for Virtualization（仮想化の移行）* をクリックし、ドロップダウンから *Providers（プロバイダー）* を選択します。
+
+. ページ上部でプロジェクト *mtv-{user}* を選択します。
++
+image::2026_spring/module-02-mtv/06_MTV_Providers.png[link=self, window=blank, width=100%]
+
+デフォルトでは、現在の *OpenShift Virtualization* クラスターをターゲットプラットフォームとして表す *host* という名前のプロバイダーが存在します。
+
+さらに、このラボ環境には *vmware* という名前の追加のプロバイダーがあらかじめ構成されており、そのエンドポイントアドレスが、先ほど確認したVMware vSphereクラスターのものであることがわかります。
+
+=== 移行プランの作成
+
+環境を確認し、プロバイダーが用意できたので、次は *移行プラン（Migration Plan）* を作成します。このプランでは、VMware vSphereからRed Hat OpenShift Virtualizationに移行するVMを選択し、移行の実行方法に関する詳細を指定します。
+
+. 左側メニューの *Migration for Virtualization -> Migrations plans（移行プラン）* に移動し、いずれかの *Create Plan（プランの作成）* ボタンを押します。
++
+image::2026_spring/module-02-mtv/07_Create_VMWARE_Plan.png[link=self, window=blank, width=100%]
+
+. まず、*Plan name（プラン名）* の入力を求められますので、フィールドに `move-webapp-vmware` と入力します。移行用に選択されているプロジェクトが *mtv-{user}* であることを確認し、Source provider（ソースプロバイダー）のドロップダウンから *vmware* を、Target provider（ターゲットプロバイダー）のドロップダウンから *host* を選択します。最後に、Target project（ターゲットプロジェクト）のドロップダウンからプロジェクトとして *vmexamples-{user}* を選択し、準備ができたら *Next（次へ）* ボタンをクリックします。
++
+image::2026_spring/module-02-mtv/08_VMware_Source_Provider.png[link=self, window=blank, width=100%]
+
+. ページが更新され、VMware vSphere環境内のVMを含むフォルダの一覧が表示されます。*Roadshow* フォルダの横にあるドロップダウンの矢印をクリックすると、お使いのユーザーアカウント *{user}* がアクセスできる仮想マシンの一覧が表示されます。
+
+. ボックスをクリックして、移行したい3つのVMを選択し、*Next* ボタンをクリックします。
+
+* database-{user}
+* winweb01-{user}
+* winweb02-{user}
+
+image::2026_spring/module-02-mtv/09_VM_List.png[link=self, window=blank, width=100%]
+
+. 次の画面では、移行プランのネットワーク詳細を設定します。*Use new network map（新しいネットワークマップを使用）* のラジオボタンを選択し、Source network（ソースネットワーク）のドロップダウンから *segment-migrating-to-ocpvirt* を選択し、Target network（ターゲットネットワーク）のドロップダウンから *Default network* を選択します。最後に、Network map name（ネットワークマップ名）に `default-network-map` と入力し、*Next* ボタンをクリックします。
++
+image::2026_spring/module-02-mtv/10a_Mig_Plan_Net.png[link=self, window=blank, width=100%]
+
+. 次の画面では、移行プランのストレージ詳細を設定します。*Use new storage map（新しいストレージマップを使用）* のラジオボタンを選択し、Source storage（ソースストレージ）のドロップダウンにVMware vSphere環境からの2つのワークロード共有スペースがリストされていることを確認し、Target storage（ターゲットストレージ）のドロップダウンで双方にデフォルトのストレージクラス *ocs-external-storagecluster-ceph-rbd* が選択されていることを確認します。もし1つしかリストされていない場合は *Add mapping* をクリックして行を追加し、Source storage（ソースストレージ）でMware vSphere環境のストレージを選択し、Target storage（ターゲットストレージ）として *ocs-external-storagecluster-ceph-rbd* を選択します。
+最後に、Storage map name（ストレージマップ名）に `default-storage-map` と入力し、*Next* ボタンをクリックします。
++
+image::2026_spring/module-02-mtv/10b_Mig_Plan_Stor.png[link=self, window=blank, width=100%]
+
+. 次の画面では、コールドマイグレーションかウォームマイグレーションのいずれかを選択するオプションが表示されます。移行元の仮想マシンの電源はオフになっているため、*Cold Migration（コールドマイグレーション）* を選択して *Next* ボタンをクリックします。
++
+image::2026_spring/module-02-mtv/10c_Mig_Plan_Cold.png[link=self, window=blank, width=100%]
+
+. 続くいくつかの画面では、ディスク暗号化、専用の移行ネットワーク、VMの電源状態の変更、および構成前後に実行するスクリプト（プレ/ポスト構成スクリプト）用のAnsibleフックの有効化など、いくつかの高度なオプションが表示されます。*Next* ボタンをクリックし続けてこれらのオプションを自由に探索するか、*Skip to review（スキップして確認）* ボタンをクリックして次のステップに進むことができます。
+
+. これで *Review and create（確認と作成）* ページが表示され、移行ウィザード中に選択したすべてのオプションを確認できます。すべてが正しく表示されているか確認し、準備ができたら下部にある *Create plan（プランの作成）* ボタンをクリックします。
++
+image::2026_spring/module-02-mtv/11a_Create_Migration_Plan_Top.png[link=self, window=blank, width=100%]
+image::2026_spring/module-02-mtv/11b_Create_Migration_Plan_Bottom.png[link=self, window=blank, width=100%]
+
+. 新しい画面に移動し、移行プランが現在検証中であり、*Unknown（不明）* 状態であることが確認できます。
++
+image::2026_spring/module-02-mtv/12_Migration_Plan_Unready.png[link=self, window=blank, width=100%]
+
+. しばらくすると、プランが *Ready for Migration（移行準備完了）* に変わります。青色の *Start（開始）* ボタンをクリックして、移行プロセスを開始します。
++
+image::2026_spring/module-02-mtv/13_Migration_Plan_Ready.png[link=self, window=blank, width=100%]
+
+. 移行を開始するための確認ボックスが表示されますので、*Start（開始）* ボタンをクリックします。
++
+image::2026_spring/module-02-mtv/14_Confirm_Migrate_Start.png[link=self, window=blank, width=100%]
+
+. プランが *Migration Running（移行実行中）* に切り替わり、*Status（ステータス）* フィールドの下に進捗を示すアイコンが表示され、移行の進行状況がパーセンテージ（％）値で更新されます。
++
+image::2026_spring/module-02-mtv/15_VMs_Migrating.png[link=self, window=blank, width=100%]
+
+. *Virtual Machines（仮想マシン）* タブをクリックすると、移行プランの進捗に関するより詳細な情報が表示されるページが表示されます。
++
+image::2026_spring/module-02-mtv/16_VMs_Migrating_Details.png[link=self, window=blank, width=100%]
+
+. 移行中の各VMの名前の横にあるドロップダウンの矢印をクリックすると、移行プロセスの各ステージに関する追加の詳細情報を取得できます。*database-{user}* の横にある矢印をクリックして、詳細を展開してみましょう。
++
+image::2026_spring/module-02-mtv/17_VM_Migration_Stages.png[link=self, window=blank, width=100%]
+
+[IMPORTANT]
+====
+これらのマシンの移行には、ラボに現在参加しているユーザーの数によって、かなりの時間がかかる場合があります。本番環境では、仮想マシンの移行用に専用の 10Gbps ネットワークを用意することが推奨されますが、このシミュレートされたラボ環境にはそれがありません。これらのマシンが移行されるまでしばらくお待ちください。その間に、次のインタラクティブビデオのセクションや、次のモジュールに進んでいただいて構いません。これらの移行されたVMは、後のモジュールで使用します。
+====
+
+== 高度な機能のインタラクティブデモ
+
+仮想マシンを操作できるようにラボのコールドマイグレーションの完了を待っている間に、この機会を利用して、Migration Toolkit for Virtualizationで実行できるいくつかの追加の高度な移行オプションを紹介したいと思います。このセクションでは、移行プロセス中の仮想マシンの自動再構成や、移行作業中のダウンタイムを短縮するウォームマイグレーションの実行方法について説明します。
+
+この時間を利用して以下のセクションを確認し、インタラクティブデモ画面（英語）をお楽しみください。
+
+=== 自動構成フック（Automated Config Hooks）
+
+自動構成フックは、Migration Toolkit for Virtualizationに組み込まれている、非常に実用的で強力な機能です。
+
+構成フックは、Migration Toolkit for Virtualizationの機能の一部として含まれています。移行プロセスの完了前または完了後に、仮想マシンのプロパティを変更するためのプレ構成フック（Pre-configuration hook）またはポスト構成フック（Post-configuration hook）としてセットアップできます。これらは Ansible 自動化のパワーを活用し、YAML 形式のプレイブックを通じて目的のアクションを実行しますが、これらに個別の https://www.redhat.com/en/hybrid-cloud-solutions/automation?sc_cid=RHCTN0250000435827&gad_source=1&gad_campaignid=20322566154&gbraid=0AAAAADsbVMRTUlnZMtmJPEadK_tiBW92m&gclid=EAIaIQobChMIqt2m1oHxjAMVjnFHAR1rXhMLEAAYASAAEgIdAfD_BwE&gclsrc=aw.ds[Ansible Automation Platform^]. のサブスクリプションは必要ありません。その代わりに、移行プロセス中にターゲットの仮想マシンに対して提供されたプレイブックを実行する、独立した *ansible-runner* ポッドの内部で実行されます。
+
+これらの自動化されたタスクは、移行元のハイパーバイザーで動作していた仮想マシンが、OpenShift Virtualization上でも期待通りに動作することを確認するために非常に価値があります。
+
+ゲスト上のファイルを編集するようなシンプルなタスクから、ハードウェアデバイスの構成を更新するような複雑なタスクまで実行できます。
+
+以下のインタラクティブデモをチェックして、双方の実際の動作例を確認してください。
+
+.デモの手順は以下の通りです。
+
+* リモートの ESXi ホスト上の仮想マシンを検出し、コールドマイグレーションプランを構成します。
+* プレ移行フック（Pre-migration hook）を使用して、ネットワークアダプターを VMware ネイティブの形式から OpenShift Virtualization 用の VirtIO 形式に再構成し、移行プロセスの開始タイムスタンプをテキストファイルに書き込みます。
+* ポスト移行フック（Post-migration hook）を使用して、ネットワークアダプターの構成をクリーンアップし、別のテキストファイルに移行プロセスの完了タイムスタンプを書き込みます。
+* 実行中の仮想マシンが正常に移行され、起動後も行った変更が維持されていることを検証します。
+
+++++
+<iframe
+  src="https://demo.arcade.software/cfhTjX94HcFjuP2pX0Lm?embed&embed_mobile=inline&embed_desktop=inline&show_copy_link=true"
+  width="100%"
+  height="600px"
+  frameborder="0"
+  webkitallowfullscreen
+  mozallowfullscreen
+  allowfullscreen
+>
+</iframe>
+++++
+
+=== ウォームマイグレーション（Warm Migration）
+
+Migration Toolkit for Virtualization のデフォルトの移行タイプはコールドマイグレーションであり、移行期間全体を通じて移行元の仮想マシンの電源をオフにする必要がありますが、多くの組織には、移行作業のために長時間のダウンタイムを許容できない重要なワークロードが存在します。これらのタイプのワークロードに対して、Migration Toolkit for Virtualization はウォームマイグレーション（Warm migration）もサポートしています。
+
+ウォームマイグレーションプロセスは、移行元のハイパーバイザー上で変更ブロック追跡（CBT: Changed Block Tracking）技術を利用することで実現されます。これは、ネットワーク経由で転送されるデータ量を削減するために、バックアップや災害復旧（DR）運用でよく使用される技術です。仮想マシンで CBT が有効になると、VM ディスク上の変更記録を保持するために、一定の間隔でゲストのスナップショットが取得されます。VM を移行する段階になると、ゲストがまだ実行されている間に、最初のデータコピーが転送されます。これにより、マシンが稼働したまま、ダウンタイムなしで大量のマシンデータを転送できます。メンテナンスウィンドウ（システム停止時間）をスケジュールできる時間になったら、Migration Toolkit for Virtualization がカットオーバー（切り替え）をトリガーし、ゲストの電源をオフにして、変更された CBT スナップショットデータのみを転送します。これにより、VM のダウンタイムを大幅に短縮できます。
+
+.デモの手順は以下の通りです。
+
+* 移行元のハイパーバイザー上で実行されている Windows および Linux 仮想マシンを確認します。
+* 構成されている Migration Toolkit for Virtualization プロバイダーを確認します。
+* カットオーバー（切り替え）フェーズで一時停止するウォームマイグレーションプランを作成し、実行します。
+* ゲストがまだ実行されていることを確認した後、カットオーバー操作を初期化（実行）します。
+* 移行プランが完了した後の環境を確認します。
+
+++++
+<iframe
+  src="https://demo.arcade.software/XavEz1uQrK12baAJqYnm?embed&embed_mobile=tab&embed_desktop=inline&show_copy_link=true"
+  width="100%"
+  height="600px"
+  frameborder="0"
+  webkitallowfullscreen
+  mozallowfullscreen
+  allowfullscreen
+>
+</iframe>
+++++
+
+== 移行のまとめ
+
+. しばらくすると、移行が正常に完了したことが確認できます。
++
+image::2026_spring/module-02-mtv/18_Completed_VMWARE_Plan.png[link=self, window=blank, width=100%]
+
+. 選択した仮想マシンが OpenShift Virtualization への移行に成功し、他の仮想マシンと同様に操作できるようになりました。
+
+. 左側のナビゲーションメニューで *Virtualization（仮想化） -> VirtualMachines（仮想マシン）* をクリックすると、*fedora01* などの作成された他のVMと並んで、*vmexamples-{user}* プロジェクトにこれらがリストされていることを確認できます。
++
+image::2026_spring/module-02-mtv/19_VMs_In_Openshift.png[link=self, window=blank, width=100%]
+
+== まとめ
+
+このセクションでは、Migration Toolkit for Virtualizationについて探索し、それを使用して既存の仮想マシンを VMware vSphere 環境から OpenShift Virtualization へ移行する作業を支援しました。また、特定の移行シナリオで活用できるいくつかの高度な機能を示すインタラクティブビデオ（デモ画面）を確認しました。
+
+Migration Toolkit for Virtualization に加えて、現在他に2つの移行ツールキットが利用可能です。これらを組み合わせることで、組織のニーズに応じて、さまざまなタイプのワークロードを OpenShift クラスター内やクラスター間へ移動させることができます。
+
+* https://docs.redhat.com/en/documentation/migration_toolkit_for_applications/8.0/html/installing_the_migration_toolkit_for_applications/intro-to-mta_installing-mta-title[Migration Toolkit for Applications^] - 大規模なアプリケーションのコンテナおよび Kubernetes へのモダナイゼーションへの取り組みを加速させます。
+
+* https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/migration_toolkit_for_containers/about-mtc[Migration Toolkit for Containers^] - OpenShift クラスター間でステートフルなアプリケーションワークロードを移行します。
+
+これらの他の移行ツールキットに関する詳細情報については、Red Hat の担当者にお問い合わせください。

@@ -1,0 +1,66 @@
+Welcome to the OpenShift Virtualization Roadshow (2026)!
+
+== このリポジトリについて
+OpenShift Virtualization Roadshow (2026)コンテンツの日本語訳リポジトリです。
+
+英語版オリジナルのリポジトリは下記です。
+
+https://github.com/rhpds/ocp-virt-roadshow-2026-showroom
+
+== 日本語化の方法
+環境のBastion端末にSSHログイン後、端末で以下のコマンドを実行ください。
+
+[source,bash,role=execute,subs="attributes"]
+----
+curl -sSL https://raw.githubusercontent.com/mayumi00/ocp-virt-roadshow-2026-showroom/refs/heads/main/translation.sh | bash
+----
+
+
+== Introduction
+This repository hosts the lab guide for the OpenShift Virtualization Roadshow, which can be delivered by Red Hat Associates to customers and interested parties all over the world.
+
+It is designed to work with the Showroom lab environment provided by the Red Hat Demo Platform (RHDP) team.
+
+This roadshow event is organized to allow you to have a hands-on experience with Red Hat OpenShift Virtualization.
+
+OpenShift Virtualization enables you to bring virtual machines onto a modern, Kubernetes-based infrastructure. It enables the development and delivery of new applications as well as the modernization of existing ones and can create applications that consist of virtual machines, containers, and serverless functions - all managed together using Kubernetes-native tools and paradigms.
+
+In this event we will explore many common management activities that virtual administrators often encounter in their day to day workflows.
+
+== Who Will Benefit Most from attending a Roadshow?
+
+*Virtual Machine Administrators* -- Those responsible for day to day management of virtual guests in OpenShift Virtualization. These users will often find themselves responsible for provisioning virtual guests, and day to day management of the guests, and the applications running within.
+
+*Virtual Infrastructure Administrators* -- Those responsible for the physical infrastructure hosting the OpenShift Virtualization solution. These users will be responsible for physical hardware, storage, and networking changes to the environment, that will affect the day to day operations of the running virtual machines.
+
+
+== What Content Is Covered In The Roadshow?
+
+These are the *seven* main sections that will be covered:
+
+* _Virtual Machine Management_: In this section we will provide a review of virtual machine management fundamentals, including creating a virtual machine, and modifying it's allotted resources.
+
+* _Migrating Existing Virtual Machines_: In this section, we will use the Migration Toolkit for Virtualization (MTV) to migrate virtual machines from an existing VMware vSphere environment to OpenShift Virtualization.
+
+* _Storage Management_: The storage paradigm familiar to many administrators changes with OpenShift Virtualization. This section will explore many actions related to storage management for virtual machines.
+
+* _Backup and Recovery for Virtual Machines_: This unit introduces and demonstrates additional concepts around backing up VMs to external sites and restoring them in the event of a disaster.
+
+* _Template and InstanceType Management_: In order to streamline deployment of virtual machines, administrators will often create Templates or define InstanceTypes to ease deployment operations. This section will focus on those processes.
+
+* _Network Management_: By default VMs are connected to the pod network in OpenShift. In this section we will explore creating new L2 network mappings as well as making use of user defined networks (UDN) for direct network connectivity.
+
+* _Working with Virtual Machines and Applications_: In this section we will perform some day-2 activities with our imported virtual machines, by exposing our VM hosted applications through services and routes.
+
+
+== Version Information
+
+This edition of the OpenShift Virtualization Roadshow has been developed using the following software versions:
+
+* Red Hat OpenShift 4.21.10
+* Red Hat OpenShift Virtualization 4.21.3
+* Red Hat OpenShift Data Foundation 4.21.2
+* Red Hat OpenShift API for Data Protection (OADP) 1.5.5
+* Red Hat Migration Toolkit for Virtual Machines 2.11.4
+
+(Accurate as of April 27, 2026)

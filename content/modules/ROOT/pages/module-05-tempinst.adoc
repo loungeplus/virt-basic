@@ -1,0 +1,579 @@
+
+= テンプレートおよびインスタンスタイプの管理
+
+== 導入
+
+事前に構成されたRed Hat仮想マシンのテンプレートは、**Virtualization（仮想化）** の **Templates（テンプレート）** ページにリストされています。これらのテンプレートは、さまざまなバージョンのRed Hat Enterprise Linux、Fedora、CentOS、Microsoft Windows Desktop、およびMicrosoft Windows Serverエディションで利用可能です。Red Hatに関連付けられた各仮想マシンテンプレートには、オペレーティングシステムイメージ（ブートソース）、オペレーティングシステムのデフォルト設定、フレーバー（CPUとメモリ）、およびワークロードタイプ（サーバー）があらかじめ構成されています。その他のオペレーティングシステム用のテンプレートにはOSイメージは含まれていませんが、そのオペレーティングシステムに推奨される設定があらかじめ構成されています。
+
+**Templates** ページには、4つのタイプの仮想マシンテンプレートが表示されます。
+
+* **Red Hat Supported（Red Hat サポート対象）**: Red Hatによって完全にサポートされているテンプレートです。
+* **User Supported（ユーザーサポート対象）**: ユーザーによってクローンおよびカスタマイズされた「Red Hat Supported」テンプレートです。
+* **Red Hat Provided（Red Hat 提供）**: Red Hatによる限定的なサポートが提供されるテンプレートです。
+* **User Provided（ユーザー提供）**: ユーザーによってクローンおよびカスタマイズされた「Red Hat Provided」テンプレートです。
+
+== ラボの準備
+
+. これから実行するタスクでは、いくつかの追加のVMをプロビジョニングする必要があります。準備として、共有環境にラボを完了するための十分なリソースを確保するために、既存の *fedora01* および *fedora02* 仮想マシンをシャットダウンしてください。
+
+. 左側メニューで **Virtualization（仮想化）** パースペクティブに移動し、**VirtualMachines（仮想マシン）** をクリックします。
+. VMワークロードをホストしており、アクセス権を持っている各プロジェクトが、中央の列のツリービューにリストされます。（仮想マシンのステータスを確認するために、少なくとも **vmimported-{user}** と **vmexamples-{user}** プロジェクトを展開する必要があります。）
+. いずれかのVMが **Running（実行中）** のステータスを示している場合は、中央のツリー列でそのVMをハイライト（選択）し、**Stop（停止）** ボタンまたは **Actions（アクション）** ドロップダウンメニューのオプションを選択して停止します。
+
+これで、すべてのVMが **Stopped（停止済み）** 状態になります。
+
+image::2026_spring/module-05-tempinst/00_VMs_Stopped.png[link=self, window=blank, width=100%]
+
+== テンプレートのクローンとカスタマイズ
+
+デフォルトでは、Red Hat OpenShift Virtualizationによって提供される事前に構成されたテンプレートを直接カスタマイズすることはできません。しかし、テンプレートをクローンして特定のワークロードに合わせて調整を行うことで、特定業務向けの特定の仮想マシンタイプを簡単に要求（プロビジョニング）できるようになります。このラボのセクションでは、エンドユーザー向けに、事前構成されたデータベースサーバーをオンデマンドで提供するテンプレートを作成して、まさにこの作業を実行します。
+
+. まず、左側メニューの **Templates（テンプレート）** をクリックし、プロジェクトとして **openshift** を選択します。*openshift* プロジェクトを表示させるために、**Show default projects（デフォルトプロジェクトの表示）** ボタンのトグルをオンにする必要がある場合があります。
++
+image::2026_spring/module-05-tempinst/01_Default_Projects.png[link=self, window=blank, width=100%]
++
+image::2026_spring/module-05-tempinst/01_Template_List.png[link=self, window=blank, width=100%]
+
+. 検索バーに `centos9` と入力して Enter キーを押します。表示されたテンプレートのリストから、**centos-stream9-server-small** のテンプレートを探します。
++
+image::2026_spring/module-05-tempinst/02_Search_Centos9.png[link=self, window=blank, width=100%]
+
+. テンプレート名 **centos-stream9-server-small** をクリックすると、デフォルトのテンプレートは編集できない旨のメッセージが表示され、クローンするかどうかを尋ねられます。**Create a new custom Template（新しいカスタムテンプレートの作成）** オプションをクリックします。
++
+image::2026_spring/module-05-tempinst/03_Create_Custom_Template.png[link=self, window=blank, width=100%]
+
+. **Clone template（テンプレートのクローン）** という新しいメニューが表示されます。以下の値を入力し、完了したら **Clone（クローン）** ボタンをクリックします。
++
+
+* **Template name（テンプレート名）**: `centos-stream9-server-db-small`
+* **Template project（テンプレートのプロジェクト）**: `vmexamples-{user}`
+* **Template display name（テンプレートの表示名）**: `CentOS Stream 9 VM - Database Template Small`
+* **Template provider（テンプレートプロバイダー）**: `Roadshow {user}`
+
+image::2026_spring/module-05-tempinst/04_Clone_Template_Options.png[link=self, window=blank, width=100%]
+
+. クローンしたテンプレートの **Details（詳細）** ページに移動し、ここでいくつかのオプションをカスタマイズできます。まず、ページの下部付近にある CPU と Memory の項目を探し、鉛筆アイコンをクリックして編集します。
++
+image::2026_spring/module-05-tempinst/05_Clone_Details.png[link=self, window=blank, width=100%]
+
+. 新しいウィンドウがポップアウトし、CPU とメモリの量を編集できます。このカスタムテンプレートでは、CPUs（CPU数）の値を `2` に、Memory（メモリ）を `4 GiB` に設定し、**Save（保存）** ボタンをクリックします。
++
+image::2026_spring/module-05-tempinst/06_Edit_CPU_Mem.png[link=self, window=blank, width=100%]
+
+. 次に、上部にある **Scripts（スクリプト）** タブをクリックし、**Cloud-init** というセクションにある **Edit（編集）** ボタンをクリックします。
++
+image::2026_spring/module-05-tempinst/09_Scripts_CloudInit.png[link=self, window=blank, width=100%]
+
+. **Cloud-init** ダイアログが開いたら、**Script（スクリプト）** のラジオボタンをクリックし、デフォルトの YAML を以下の YAML スニペットで **置き換え** ます。
++
+[source,yaml,role=execute]
+----
+userData: |-
+  #cloud-config
+  user: centos
+  password: ${CLOUD_USER_PASSWORD}
+  chpasswd: { expire: False }
+  packages:
+    - mariadb-server
+  runcmd:
+    - systemctl enable mariadb
+    - systemctl start mariadb
+----
++
+image::2026_spring/module-05-tempinst/10_Cloud_Init_Script.png[link=self, window=blank, width=100%]
+
+. **Save（保存）** ボタンをクリックすると、緑色で **Saved（保存されました）** と表示されます。続いて **Apply（適用）** ボタンをクリックします。
+
+. ここで左側メニューの **Catalog（カタログ）** 項目をクリックし、**Template catalog（テンプレートカタログ）** タブを選択してから、**User templates（ユーザーテンプレート）** を選択します。作成したテンプレートがタイルとして利用可能になっていることが確認できます。
++
+image::2026_spring/module-05-tempinst/11_User_Templates.png[link=self, window=blank, width=100%]
+
+. タイルをクリックすると、VM起動画面が表示されます。**Quick create VirtualMachine（VirtualMachineのクイック作成）** ボタンをクリックします。
++
+image::2026_spring/module-05-tempinst/12_Quick_Create_Template.png[link=self, window=blank, width=100%]
+
+. 仮想マシンが起動すると、**Overview（概要）** ページで、作成したテンプレートから作成され、定義した追加リソースが反映されていることを確認できます。あとは、**MariaDB** が正常にインストールされたかどうかを検証するだけです。
++
+image::2026_spring/module-05-tempinst/13_VM_From_Template.png[link=self, window=blank, width=100%]
+
+. 上部にある **Console（コンソール）** タブをクリックし、提供されている **Guest login credentials（ゲストログイン認証情報）** と、**Copy** および **Paste to console（コンソールに貼り付け）** ボタンを使用して、仮想マシンのコンソールにログインします。
++
+image::2026_spring/module-05-tempinst/14_VM_Console.png[link=self, window=blank, width=100%]
+
+. 仮想マシンにログインしたら、以下のコマンドを実行して MariaDB のインストールをテストします。
++
+[source,sh,role=execute]
+----
+sudo mysql -u root
+----
+
++
+image::2026_spring/module-05-tempinst/15_MariaDB_Login.png[link=self, window=blank, width=100%]
+
+. **Ctrl-D** を2回押して、VMからログアウトします。
+
+== Windows VMテンプレートの作成
+
+このラボのセクションでは、Webサーバーにホストされている ISO イメージを使用して Microsoft Windows Server 2022 をインストールします。これは、Webサーバー、オブジェクトストレージ、またはクラスター内の他の永続ボリュームを含む、多くの場所からディスクを調達できる機能を利用して、仮想マシンにオペレーティングシステムをインストールする手法の1つを示しています。
+
+このプロセスは、最初のオペレーティングシステムのインストール後に、他のテンプレートで使用できるように sysprep（システム準備）済みの仮想マシンからクローンされたルートディスクを作成することで合理化できます。
+
+[NOTE]
+====
+ゲストオペレーティングシステムをテンプレートとして使用するために準備する具体的なプロセスは異なります。テンプレートOSを準備する際は、必ず組織のガイドラインや要件に従ってください。
+====
+
+. 左側メニューから **Catalog（カタログ）** に移動し、上部付近にある **Template catalog（テンプレートカタログ）** タブをクリックします。
+
+. 検索バーに `win` という単語を入力するか、下へスクロールして **Microsoft Windows Server 2022 VM** のタイルを見つけます。
++
+image::2026_spring/module-05-tempinst/16_Windows_2k22_Tile.png[link=self, window=blank, width=100%]
+
+. テンプレートに関連するデフォルトの構成を示すダイアログが表示されます。
++
+[NOTE]
+====
+提供されているブートソースがないため、初期状態ではこのVMをクイック作成するオプションが表示されないことに注意してください。ニーズに合わせてVMをカスタマイズする必要があります。
+====
+
++
+image::2026_spring/module-05-tempinst/17_Windows_2k22_Dialog.png[link=self, window=blank, width=100%]
++
+. このダイアログ内で：
+
+* 名前に `win-sysprep` と指定します。
+* **Boot from CD（CDからブート）** のチェックボックスを有効にします。
+* ドロップダウンメニューから **URL (creates PVC/PVCの作成)** を選択します。
+* **image URL（イメージURL）** に以下を指定します： `https://catalog-item-assets.s3.us-east-2.amazonaws.com/qcow_images/WINSERV22.iso`
+* CDのディスクサイズを **5 GiB** に縮小します。
+* **Disk source（ディスクソース）** は **Blank（空白）** のままとし、サイズはデフォルト値の **60 GiB** に設定します。
+* **Mount Windows drivers disk（Windowsドライバーディスクのマウント）** のチェックボックスが有効になっていることを確認します。**これは、VirtIO用のドライバーを提供するものであり、Windowsシステムをインストールするために必須となります。**
+
+. オプションを入力したら、画面下部にある **Customize VirtualMachine（VirtualMachineのカスタマイズ）** ボタンをクリックして、テンプレートの構成を続行します。
++
+image::2026_spring/module-05-tempinst/18_Windows_2k22_Parameters.png[link=self, window=blank, width=100%]
+
+. **Customize and create VirtualMachine（VirtualMachineのカスタマイズと作成）** 画面で、**Scripts（スクリプト）** タブをクリックし、下へスクロールして **Sysprep** セクションに移動し、**Edit（編集）** ボタンをクリックします。
++
+image::2026_spring/module-05-tempinst/20_Customize_Scripts.png[link=self, window=blank, width=100%]
+
+. 新しいテンプレートの **Sysprep** アクションを作成するための新しいウィンドウがポップアップ表示されます。
++
+image::2026_spring/module-05-tempinst/21_Sysprep.png[link=self, window=blank, width=100%]
+
+. 以下のコードブロックをコピーして、**Autounattend.xml** セクションに貼り付けます。これにより、Windowsサーバーのインストールと構成を自動化することができます。
++
+[source,xml,role=execute]
+----
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Windows Server 2022 Unattended Installation
+  Configured for: UEFI Boot, WinRM/Ansible, Compliance Automation
+  Usage: Paste this into OpenShift Virtualization VM Sysprep configuration
+-->
+<unattend xmlns="urn:schemas-microsoft-com:unattend" xmlns:wcm="http://schemas.microsoft.com/WMIConfig/2002/State" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:schemas-microsoft-com:unattend">
+  <!-- ============================================================
+       WINDOWS PE PASS - Disk Configuration and OS Installation
+       ============================================================ -->
+  <settings pass="windowsPE">
+    <component name="Microsoft-Windows-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <!-- GPT Disk Configuration for UEFI Boot -->
+      <DiskConfiguration>
+        <Disk wcm:action="add">
+          <DiskID>0</DiskID>
+          <WillWipeDisk>true</WillWipeDisk>
+          <CreatePartitions>
+            <!-- EFI System Partition (ESP) - Required for UEFI -->
+            <CreatePartition wcm:action="add">
+              <Order>1</Order>
+              <Size>100</Size>
+              <Type>EFI</Type>
+            </CreatePartition>
+            <!-- Microsoft Reserved Partition (MSR) -->
+            <CreatePartition wcm:action="add">
+              <Order>2</Order>
+              <Size>16</Size>
+              <Type>MSR</Type>
+            </CreatePartition>
+            <!-- Windows OS Partition - Uses remaining space -->
+            <CreatePartition wcm:action="add">
+              <Order>3</Order>
+              <Extend>true</Extend>
+              <Type>Primary</Type>
+            </CreatePartition>
+          </CreatePartitions>
+          <ModifyPartitions>
+            <!-- Format EFI Partition -->
+            <ModifyPartition wcm:action="add">
+              <Order>1</Order>
+              <PartitionID>1</PartitionID>
+              <Format>FAT32</Format>
+              <Label>System</Label>
+            </ModifyPartition>
+            <!-- Format Windows Partition -->
+            <ModifyPartition wcm:action="add">
+              <Order>2</Order>
+              <PartitionID>3</PartitionID>
+              <Format>NTFS</Format>
+              <Label>Windows</Label>
+              <Letter>C</Letter>
+            </ModifyPartition>
+          </ModifyPartitions>
+        </Disk>
+      </DiskConfiguration>
+      <!-- Windows Edition Selection -->
+      <ImageInstall>
+        <OSImage>
+          <InstallFrom>
+            <MetaData wcm:action="add">
+              <Key>/IMAGE/NAME</Key>
+              <!-- Options:
+                   Windows Server 2022 SERVERSTANDARD
+                   Windows Server 2022 SERVERDATACENTER
+                   Windows Server 2019 SERVERSTANDARD
+                   Windows Server 2019 SERVERDATACENTER
+              -->
+              <Value>Windows Server 2022 SERVERSTANDARD</Value>
+            </MetaData>
+          </InstallFrom>
+          <InstallTo>
+            <DiskID>0</DiskID>
+            <PartitionID>3</PartitionID>
+          </InstallTo>
+        </OSImage>
+      </ImageInstall>
+      <!-- User Data -->
+      <UserData>
+        <AcceptEula>true</AcceptEula>
+        <FullName>Administrator</FullName>
+        <Organization>Compliance Team</Organization>
+      </UserData>
+    </component>
+    <!-- Locale Settings for PE -->
+    <component name="Microsoft-Windows-International-Core-WinPE" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <SetupUILanguage>
+        <UILanguage>en-US</UILanguage>
+      </SetupUILanguage>
+      <InputLocale>en-US</InputLocale>
+      <SystemLocale>en-US</SystemLocale>
+      <UILanguage>en-US</UILanguage>
+      <UserLocale>en-US</UserLocale>
+    </component>
+  </settings>
+  <!-- ============================================================
+       SPECIALIZE PASS - Machine-Specific Configuration
+       ============================================================ -->
+  <settings pass="specialize">
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <!-- Computer Name - Will be changed after cloning -->
+      <ComputerName>WIN-TEMPLATE</ComputerName>
+      <!-- Timezone - Adjust as needed -->
+      <TimeZone>UTC</TimeZone>
+      <!-- Initial Auto-Logon for Setup -->
+      <AutoLogon>
+        <Enabled>true</Enabled>
+        <LogonCount>5</LogonCount>
+        <Username>Administrator</Username>
+        <Password>
+          <Value>R3dH4t1!</Value>
+          <PlainText>true</PlainText>
+        </Password>
+      </AutoLogon>
+    </component>
+    <!-- Disable IE Enhanced Security for initial setup -->
+    <component name="Microsoft-Windows-IE-ESC" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <IEHardenAdmin>false</IEHardenAdmin>
+      <IEHardenUser>false</IEHardenUser>
+    </component>
+    <!-- Server Manager - Don't show at logon -->
+    <component name="Microsoft-Windows-ServerManager-SvrMgrNc" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <DoNotOpenServerManagerAtLogon>true</DoNotOpenServerManagerAtLogon>
+    </component>
+  </settings>
+  <!-- ============================================================
+       OOBE SYSTEM PASS - First Boot Configuration
+       ============================================================ -->
+  <settings pass="oobeSystem">
+    <!-- Locale Settings -->
+    <component name="Microsoft-Windows-International-Core" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <InputLocale>en-US</InputLocale>
+      <SystemLocale>en-US</SystemLocale>
+      <UILanguage>en-US</UILanguage>
+      <UserLocale>en-US</UserLocale>
+    </component>
+    <!-- Shell Setup and First Logon Commands -->
+    <component name="Microsoft-Windows-Shell-Setup" processorArchitecture="amd64" publicKeyToken="31bf3856ad364e35" language="neutral" versionScope="nonSxS">
+      <!-- Skip all OOBE screens -->
+      <OOBE>
+        <HideEULAPage>true</HideEULAPage>
+        <HideLocalAccountScreen>true</HideLocalAccountScreen>
+        <HideOnlineAccountScreens>true</HideOnlineAccountScreens>
+        <HideWirelessSetupInOOBE>true</HideWirelessSetupInOOBE>
+        <NetworkLocation>Work</NetworkLocation>
+        <ProtectYourPC>3</ProtectYourPC>
+        <SkipMachineOOBE>true</SkipMachineOOBE>
+        <SkipUserOOBE>true</SkipUserOOBE>
+      </OOBE>
+      <!-- Administrator Account Setup -->
+      <UserAccounts>
+        <AdministratorPassword>
+          <Value>R3dH4t1!</Value>
+          <PlainText>true</PlainText>
+        </AdministratorPassword>
+        <LocalAccounts>
+          <LocalAccount wcm:action="add">
+            <Name>Administrator</Name>
+            <DisplayName>Administrator</DisplayName>
+            <Group>Administrators</Group>
+            <Description>Built-in Administrator Account</Description>
+          </LocalAccount>
+        </LocalAccounts>
+      </UserAccounts>
+      <!-- Auto-Logon for First Boot Commands -->
+      <AutoLogon>
+        <Enabled>true</Enabled>
+        <LogonCount>5</LogonCount>
+        <Username>Administrator</Username>
+        <Password>
+          <Value>R3dH4t1!</Value>
+          <PlainText>true</PlainText>
+        </Password>
+      </AutoLogon>
+      <!-- ============================================================
+           FIRST LOGON COMMANDS - WinRM and Ansible Setup
+           These run automatically on first boot
+           ============================================================ -->
+      <FirstLogonCommands>
+        <!-- 1. Set Execution Policy for PowerShell -->
+        <SynchronousCommand wcm:action="add">
+          <Order>1</Order>
+          <CommandLine>powershell.exe -Command "Set-ExecutionPolicy RemoteSigned -Force"</CommandLine>
+          <Description>Set PowerShell Execution Policy</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 2. Enable WinRM Service -->
+        <SynchronousCommand wcm:action="add">
+          <Order>2</Order>
+          <CommandLine>powershell.exe -Command "Enable-PSRemoting -Force -SkipNetworkProfileCheck"</CommandLine>
+          <Description>Enable PowerShell Remoting</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 3. Configure WinRM Service -->
+        <SynchronousCommand wcm:action="add">
+          <Order>3</Order>
+          <CommandLine>powershell.exe -Command "Set-Service WinRM -StartupType Automatic"</CommandLine>
+          <Description>Set WinRM to Auto Start</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 4. Configure WinRM for Ansible - Basic Auth -->
+        <SynchronousCommand wcm:action="add">
+          <Order>4</Order>
+          <CommandLine>powershell.exe -Command "Set-Item WSMan:\localhost\Service\Auth\Basic -Value $true"</CommandLine>
+          <Description>Enable Basic Authentication</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 5. Configure WinRM for Ansible - Allow Unencrypted (set to false for production with HTTPS) -->
+        <SynchronousCommand wcm:action="add">
+          <Order>5</Order>
+          <CommandLine>powershell.exe -Command "Set-Item WSMan:\localhost\Service\AllowUnencrypted -Value $true"</CommandLine>
+          <Description>Allow Unencrypted Traffic (for initial setup)</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 6. Configure WinRM Listener for HTTP (5985) -->
+        <SynchronousCommand wcm:action="add">
+          <Order>6</Order>
+          <CommandLine>powershell.exe -Command "if (!(Get-WSManInstance -ResourceURI winrm/config/Listener -SelectorSet @{Transport='HTTP'; Address='*'} -ErrorAction SilentlyContinue)) { New-WSManInstance -ResourceURI winrm/config/Listener -SelectorSet @{Transport='HTTP'; Address='*'} }"</CommandLine>
+          <Description>Create HTTP Listener</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 7. Create Self-Signed Certificate for HTTPS -->
+        <SynchronousCommand wcm:action="add">
+          <Order>7</Order>
+          <CommandLine>powershell.exe -Command "$cert = New-SelfSignedCertificate -DnsName $env:COMPUTERNAME, localhost -CertStoreLocation Cert:\LocalMachine\My -NotAfter (Get-Date).AddYears(5); New-Item -Path WSMan:\localhost\Listener -Transport HTTPS -Address * -CertificateThumbprint $cert.Thumbprint -Force"</CommandLine>
+          <Description>Create HTTPS Listener with Self-Signed Cert</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 8. Configure WinRM Memory and Timeouts -->
+        <SynchronousCommand wcm:action="add">
+          <Order>8</Order>
+          <CommandLine>powershell.exe -Command "Set-Item WSMan:\localhost\Shell\MaxMemoryPerShellMB 2048"</CommandLine>
+          <Description>Increase WinRM Memory Limit</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 9. Open Firewall for WinRM HTTP (5985) -->
+        <SynchronousCommand wcm:action="add">
+          <Order>9</Order>
+          <CommandLine>netsh advfirewall firewall add rule name="WinRM HTTP" dir=in action=allow protocol=TCP localport=5985</CommandLine>
+          <Description>Open Firewall Port 5985</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 10. Open Firewall for WinRM HTTPS (5986) -->
+        <SynchronousCommand wcm:action="add">
+          <Order>10</Order>
+          <CommandLine>netsh advfirewall firewall add rule name="WinRM HTTPS" dir=in action=allow protocol=TCP localport=5986</CommandLine>
+          <Description>Open Firewall Port 5986</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 11. Restart WinRM to Apply Changes -->
+        <SynchronousCommand wcm:action="add">
+          <Order>11</Order>
+          <CommandLine>powershell.exe -Command "Restart-Service WinRM"</CommandLine>
+          <Description>Restart WinRM Service</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 12. Enable Remote Desktop (optional, useful for troubleshooting) -->
+        <SynchronousCommand wcm:action="add">
+          <Order>12</Order>
+          <CommandLine>powershell.exe -Command "Set-ItemProperty -Path 'HKLM:\System\CurrentControlSet\Control\Terminal Server' -Name 'fDenyTSConnections' -Value 0"</CommandLine>
+          <Description>Enable Remote Desktop</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 13. Open Firewall for RDP -->
+        <SynchronousCommand wcm:action="add">
+          <Order>13</Order>
+          <CommandLine>netsh advfirewall firewall add rule name="Remote Desktop" dir=in action=allow protocol=TCP localport=3389</CommandLine>
+          <Description>Open Firewall Port 3389 for RDP</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 14. Install VirtIO Guest Agent (if available) -->
+        <SynchronousCommand wcm:action="add">
+          <Order>14</Order>
+          <CommandLine>powershell.exe -Command "if (Test-Path 'E:\virtio-win-guest-tools.exe') { Start-Process -FilePath 'E:\virtio-win-guest-tools.exe' -ArgumentList '/install /passive /norestart' -Wait }"</CommandLine>
+          <Description>Install VirtIO Guest Tools</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+        <!-- 15. Create marker file indicating setup is complete -->
+        <SynchronousCommand wcm:action="add">
+          <Order>15</Order>
+          <CommandLine>powershell.exe -Command "New-Item -Path 'C:\setup-complete.txt' -ItemType File -Value 'WinRM and Ansible setup completed at: ' + (Get-Date)"</CommandLine>
+          <Description>Create Setup Complete Marker</Description>
+          <RequiresUserInput>false</RequiresUserInput>
+        </SynchronousCommand>
+      </FirstLogonCommands>
+    </component>
+  </settings>
+</unattend>
+----
+
+. コードを貼り付けたら、ダイアログの **Save（保存）** ボタンをクリックします。
++
+image::2026_spring/module-05-tempinst/22_Windows_2k22_Sysprep.png[link=self, window=blank, width=100%]
+
+. Sysprep の設定が完了したら、画面下部にある **Create VirtualMachine（VirtualMachineの作成）** ボタンをクリックします。
++
+image::2026_spring/module-05-tempinst/23_Create_VirtualMachine.png[link=self, window=blank, width=100%]
+
+. 仮想マシンは、ISO イメージのダウンロード、構成、およびインスタンスの起動を行うことで、プロビジョニングプロセスを開始します。
++
+image::2026_spring/module-05-tempinst/24_Windows_2k22_Provisioning.png[link=self, window=blank, width=100%]
+
+. ブート用の ISO イメージをダウンロードする必要があるため、このプロセスには数分かかる場合があります。ダウンロードの進行状況は、**Diagnostics（診断）** タブをクリックして確認できます。
++
+image::2026_spring/module-05-tempinst/25_CD_Import.png[link=self, window=blank, width=100%]
+
+. しばらくすると、仮想マシンが **Starting（起動中）** 状態に入り、ステータスが **Running（実行中）** に変わります。これが確認できたら、**Console（コンソール）** タブをクリックし、CDから起動するようプロンプトが表示されたら **Enter** キーを押します。自動応答インストール（Unattended Installation）プロセスが完了するのを見守ります。
++
+[NOTE]
+====
+「Press Enter to Boot to CD/DVD（CD/DVDから起動するにはEnterを押してください）」のタイミングを逃してしまった場合は、マシンを強制停止（Force stop）して再度起動することでやり直せます。再起動（Restart）ボタンを使用すると初期起動ステージがスキップされてしまうため、このプロセスでは機能しません。
+====
++
+image::2026_spring/module-05-tempinst/26_Windows_2k22_Console.png[link=self, window=blank, width=100%]
+
+. VMのインストールプロセスが完了したら（プロビジョニングに3〜5分、起動と構成に約10分かかります）、停止ボタン（Stop）を使用して電源をオフにします。
++
+image::2026_spring/module-05-tempinst/27_Stop_Button.png[link=self, window=blank, width=100%]
+
+. マシンの電源が切れた状態で、毎回カスタマイズプロセスを実行する必要をなくすために、将来のWindowsテンプレートベースのインストールで使用できるルートボリュームのクローンを作成します。
++
+[NOTE]
+====
+将来のデプロイメントに使用するために、元のインストールディスクの専用クローンを用意しておくと、接続されているマシンが削除されても元のディスクが誤って削除されるのを防ぐことができるため便利です。
+====
+
+. 左側メニューの **Storage（ストレージ）** -> **PersistentVolumeClaims（永続ボリューム要求）** をクリックして、**vmexamples-{user}** ネームスペース内で利用可能な PVC の一覧を表示します。
+
+. インストール時に作成された **win-sysprep** の PVC を見つけ、右側にある3つのドットのメニューを使用して **Clone PVC（PVC のクローン）** を選択します。
++
+image::2026_spring/module-05-tempinst/28_Storage_PVC.png[link=self, window=blank, width=100%]
+
+. ポップアップ表示されるメニューで、以下のオプションを入力し、**Clone（クローン）** ボタンをクリックします。
+
+* **Name（名前）**: `windows-2k22-sysprep-template`
+* **Access mode（アクセスモード）**: `Shared access (RWX)`（共有アクセス）
+* **StorageClass（ストレージクラス）**: `ocs-external-storagecluster-ceph-rbd`
+
++
+image::2026_spring/module-05-tempinst/29_Clone_Menu.png[link=self, window=blank, width=100%]
+
+. これが保存されると、将来的に Windows VM を迅速に作成するために使用できるようになります。
+
+. 再び **Virtualization -> Catalog（カタログ）** メニュー項目に戻り、**Microsoft Windows Server 2022 VM** タイルをクリックします。**Disk source（ディスクソース）** として **PVC (clone PVC)/PVC（PVCクローン作成）** オプションを選択し、ネームスペースとして **vmexamples-{user}** を選択します。 クローンする **PVC name（PVC 名）** として **windows-2k22-sysprep-template** PVC を選択することで、このクローンされた PVC をブートソースとして使用し、新しい仮想マシンをクイック作成できます。
++
+image::2026_spring/module-05-tempinst/30_Windows_Template.png[link=self, window=blank, width=100%]
++
+image::2026_spring/module-05-tempinst/31_Windows_Clone_PVC.png[link=self, window=blank, width=100%]
+
+. 数分で、新しい Windows Server 2022 仮想マシンがクローンされた PVC から起動します。
++
+image::2026_spring/module-05-tempinst/32_Windows_Template_Running.png[link=self, window=blank, width=100%]
+
+== インスタンスタイプの導入
+
+仮想マシンのデプロイプロセスを簡素化するために、OpenShift 4.14 以降、デフォルトの構成メカニズムは **Instance Types（インスタンスタイプ）** の使用を強調するように変更されました。インスタンスタイプとは、新しい VM に適用するリソースや特性を定義できる、再利用可能なオブジェクトです。独自の VM をプロビジョニングする際に、カスタムのインスタンスタイプを定義することも、OpenShift Virtualization のインストール時に標準で含まれているさまざまなインスタンスタイプを使用することもできます。これは、一般的なクラウドプロバイダーでセルフサービスカタログを使用する際のユーザー体験に酷似しています。
+
+このセクションでは、インスタンスタイプを使用して VM をプロビジョニングする方法について探索します。
+
+. 開始するには、左側メニューの **Catalog（カタログ）** をクリックします。デフォルトのカタログ項目が **InstanceType** になっていることが確認できます。
++
+image::2026_spring/module-05-tempinst/33_Left_Menu_Catalog.png[link=self, window=blank, width=100%]
+
+. インスタンスタイプを使用する最初のステップは、起動元のボリューム（Volume）を選択することです。ブートソースを提供するテンプレートと同様に、これらのブートソースは InstanceType でプロビジョニングされたゲストでも使用できます。**openshift-virtualization-os-images** プロジェクトを選択することで、含まれているボリュームを確認できます。また、**Add volume（ボリュームの追加）** ボタンを使用して独自のボリュームをアップロードすることもできます。
++
+image::2026_spring/module-05-tempinst/34_Volume_Boot.png[link=self, window=blank, width=100%]
+
+. **rhel10** ブートボリュームをクリックして、起動元のボリュームタイプとして選択します。選択されると、該当行のフォントが太字に変わります。
++
+image::2026_spring/module-05-tempinst/35_Select_RHEL10.png[link=self, window=blank, width=100%]
+
+. 次に、使用したいインスタンスタイプを選択できます。デフォルトで Red Hat 提供のインスタンスタイプが用意されているほか、特定のユースケースに合わせて独自のインスタンスタイプを作成することもできます。提供されているインスタンスタイプにカーソルを合わせると、その想定される用途の説明を確認できます。
++
+image::2026_spring/module-05-tempinst/36_Select_InstanceType.png[link=self, window=blank, width=100%]
++
+
+* Red Hat が提供するインスタンスタイプは、以下の用途を想定しています：
+ ** *N シリーズ*: VNF（仮想ネットワーク機能）などのネットワーク集約型の DPDK ワークロード向けに設計されています。
+ ** *O シリーズ*: メモリのオーバーコミットがあらかじめ構成された、特化型の汎用インスタンスタイプです。
+ ** *M シリーズ*: メモリ集約型のワークロード向けに設計されています。
+ ** *RT シリーズ*: リアルタイム仮想化のユースケース向けに設計されています。
+ ** *D シリーズ*: 専用またはピン留めされた CPU ワークロードで使用するために設計されています。
+ ** *CX シリーズ*: 追加の機能オフロード用に追加の専用 CPU を要求することで、コンピューティング集約型のワークロード向けに設計されています。
+ ** *U シリーズ*: 最も一般的な汎用（ユニバーサル）のインスタンスタイプです。
+
+. *Uシリーズ* のタイルをクリックすると、一般的なインスタンスタイプ用に定義されたリソースのドロップダウンリストが表示されます。ここでのデフォルトオプションは **medium: 1 CPUs, 4 GiB Memory** です。これを選択します。選択されると、インスタンスタイプのフォントが太字になり、青い線で示されます。
++
+image::2026_spring/module-05-tempinst/37_InstanceType_Resources.png[link=self, window=blank, width=100%]
+
+. インスタンスタイプを使用してプロビジョニングを行う際に完了する必要がある最後のセクションは、テンプレートのセクションと似ています。仮想マシンの名前を指定し、バッキングディスクに使用するストレージクラスを選択する必要があります。デフォルトでは、VM の名前が自動生成され、デフォルトのストレージクラスが選択されます。問題がなければ、**Create VirtualMachine（VirtualMachineの作成）** ボタンをクリックします。
++
+image::2026_spring/module-05-tempinst/38_VM_Details.png[link=self, window=blank, width=100%]
+
+. 仮想マシンの概要ページにリダイレクトされ、インスタンスタイプを使用してプロビジョニングされた VM が正常に起動し、実行中であることが確認できます。
++
+image::2026_spring/module-05-tempinst/39_VM_Overview.png[link=self, window=blank, width=100%]
+
+== クリーンアップ
+
+次のラボのためにリソースを節約するため、このモジュールで作成したすべての VM を停止してください。
+
+. **Virtualization -> VirtualMachines** をクリックします。
+. VMワークロードをホストしており、アクセス権を持っている各プロジェクトが、中央の列のツリービューにリストされます。（仮想マシンのステータスを確認するために、少なくとも **vmexamples-{user}** と **vmimported-{user}** プロジェクトを展開する必要があります。）
+. いずれかのVMが **Running（実行中）** のステータスを示している場合は、中央のツリー列でそのVMをハイライト（選択）し、**Stop（停止）** ボタンまたは **Actions（アクション）** ドロップダウンメニューのオプションを選択して停止します。
+
+これで、すべてのVMが **Stopped（停止済み）** 状態になります。
+
+image::2026_spring/module-05-tempinst/40_All_Stopped.png[link=self, window=blank, width=100%]
+
+== まとめ
+
+このセクションでは、既存のテンプレートをクローンしてカスタマイズし、データベースなどの特定のワークロードに使用できるテンプレートを作成する方法を学びました。また、ブートソースのない既存の Windows テンプレートの1つを構成し、そのインストールプロセスを自動化する方法を学びました。これにより、そのVMで作成されたインストール PVC をクローンすることで、将来のデプロイメントを簡単に作成できるようになります。さらに、インスタンスタイプを利用して、特定のワークロードに合わせて仮想マシンをさらにカスタマイズし、よりクラウドに近い利用体験を実現する方法についても紹介しました。
