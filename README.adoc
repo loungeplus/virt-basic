@@ -1,7 +1,7 @@
 Welcome to the OpenShift Virtualization Roadshow (2026)!
 
 == このリポジトリについて
-OpenShift Virtualization Roadshow (2026)コンテンツの日本語訳リポジトリです。
+OpenShift Virtualization Roadshow (2026)コンテンツの日本語訳＋カスタム版のリポジトリです。
 
 英語版オリジナルのリポジトリは下記です。
 
